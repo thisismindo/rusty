@@ -1,19 +1,24 @@
-#[derive(Debug)]
-pub struct CustomError {
-    pub message: String,
-    pub cause: Option<Box<dyn std::error::Error + Send + Sync>>,
+use warp::reject::Reject;
+
+#[derive(Debug, thiserror::Error)]
+pub enum AppError {
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
+
+    #[error("Validation error: {0}")]
+    Validation(String),
+
+    #[error("Not found")]
+    NotFound,
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
+    #[error("Internal error: {0}")]
+    Internal(String),
+
+    #[error("Rate limit exceeded")]
+    RateLimited,
 }
 
-impl CustomError {
-    pub fn with_cause<E>(message: &str, cause: E) -> Self
-    where
-        E: Into<Box<dyn std::error::Error + Send + Sync>>,
-    {
-        CustomError {
-            message: message.to_string(),
-            cause: Some(cause.into()),
-        }
-    }
-}
-
-impl warp::reject::Reject for CustomError {}
+impl Reject for AppError {}
