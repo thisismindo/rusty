@@ -1,20 +1,30 @@
-use mysql::Row;
-use mysql::prelude::FromRow;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+/// User model for database queries - returned from SELECT operations
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub struct User {
-    pub id: u64,
+    pub id: i32,
     pub name: String,
     pub email: String,
 }
 
-impl FromRow for User {
-    fn from_row_opt(row: Row) -> Result<Self, mysql::FromRowError> {
-        Ok(User {
-            id: row.get("id").unwrap_or_default(),
-            name: row.get("name").unwrap_or_default(),
-            email: row.get("email").unwrap_or_default(),
-        })
-    }
+/// Request model for creating a new user - with validation
+#[derive(Debug, Deserialize, Validate)]
+pub struct CreateUserRequest {
+    #[validate(length(min = 1, max = 100, message = "Name must be 1-100 characters"))]
+    pub name: String,
+
+    #[validate(email(message = "Invalid email format"))]
+    pub email: String,
+}
+
+/// Request model for updating a user - with validation
+#[derive(Debug, Deserialize, Validate)]
+pub struct UpdateUserRequest {
+    #[validate(length(min = 1, max = 100, message = "Name must be 1-100 characters"))]
+    pub name: String,
+
+    #[validate(email(message = "Invalid email format"))]
+    pub email: String,
 }

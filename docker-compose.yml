@@ -21,25 +21,91 @@ services:
       - ./platform/images/mysql/primary.conf.d/mysql.cnf:/etc/my.cnf
     networks:
       - rusty-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  rusty:
-    container_name: rusty
+  rusty-1:
+    container_name: rusty-1
+    hostname: rusty-1
     build: .
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     environment:
-      - MYSQL_HOST=${MYSQL_HOST}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    ports:
-      - 3030:3030
+      - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-db-primary:3306/${MYSQL_DATABASE}
+      - API_KEY=${API_KEY}
     networks:
       - rusty-network
-    command:
-      - '/bin/sh'
-      - '-c'
-      - '/bin/sleep 10'
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3030/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  rusty-2:
+    container_name: rusty-2
+    hostname: rusty-2
+    build: .
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-db-primary:3306/${MYSQL_DATABASE}
+      - API_KEY=${API_KEY}
+    networks:
+      - rusty-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3030/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  rusty-3:
+    container_name: rusty-3
+    hostname: rusty-3
+    build: .
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-db-primary:3306/${MYSQL_DATABASE}
+      - API_KEY=${API_KEY}
+    networks:
+      - rusty-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3030/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  nginx:
+    container_name: nginx-lb
+    hostname: nginx-lb
+    build:
+      context: ./platform/images/nginx
+      dockerfile: Nginx.Dockerfile
+    depends_on:
+      rusty-1:
+        condition: service_healthy
+      rusty-2:
+        condition: service_healthy
+      rusty-3:
+        condition: service_healthy
+    ports:
+      - 80:80
+    networks:
+      - rusty-network
+    restart: on-failure
 
 volumes:
   mysql-db-primary:

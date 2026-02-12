@@ -1,20 +1,60 @@
 # rusty app
 [package]
 name = "rusty"
-version = "0.6.0"
-edition = "2021"
+version = "1.0.0"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "rusty"
+path = "src/lib.rs"
 
 [[bin]]
 name = "rusty"
 path = "src/main.rs"
 
 [dependencies]
-mysql = "25.0"
+sqlx = { version = "0.8", features = ["runtime-tokio", "mysql"] }
 warp = "0.3.7"
 tokio = { version = "1.39.3", features = ["full"] }
 serde = { version = "1.0.209", features = ["derive"] }
 serde_json = "1.0.127"
 tokio-console = { version = "0.1.12" }
 dotenv = "0.15.0"
+validator = { version = "0.18", features = ["derive"] }
+thiserror = "2.0"
+governor = "0.8"
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = ["json"] }
+serial_test = "3.1"
+
+[lints.rust]
+unsafe_code = "allow"  # Required for std::env::set_var in tests (Rust 2024)
+missing_docs = "allow"
+
+[lints.clippy]
+# Correctness
+correctness = { level = "deny", priority = -1 }
+
+# Suspicious code
+suspicious = { level = "warn", priority = -1 }
+
+# Style
+style = { level = "warn", priority = -1 }
+
+# Complexity
+complexity = { level = "warn", priority = -1 }
+
+# Performance
+perf = { level = "warn", priority = -1 }
+
+# Pedantic (more opinionated)
+pedantic = { level = "warn", priority = -1 }
+
+# Allow specific lints we don't want to enforce
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

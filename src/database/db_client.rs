@@ -1,22 +1,13 @@
-use mysql::*;
-use std::env;
-use std::sync::{Arc, Mutex};
+use crate::helpers::custom_error::AppError;
+use sqlx::mysql::MySqlPool;
 
-pub type DbPool = Arc<Mutex<Pool>>;
+pub type DbPool = MySqlPool;
 
-pub fn get_db_pool() -> DbPool {
-    let db_user = env::var("MYSQL_USER").unwrap_or_else(|_| "root".to_string());
-    let db_pwd = env::var("MYSQL_PASSWORD").unwrap_or_else(|_| "password".to_string());
-    let db_name = env::var("MYSQL_DATABASE").unwrap_or_else(|_| "database".to_string());
+pub async fn get_db_pool() -> Result<DbPool, AppError> {
+    let database_url = std::env::var("DATABASE_URL")
+        .map_err(|_| AppError::Internal("DATABASE_URL environment variable not set".into()))?;
 
-    let opts = OptsBuilder::new()
-        .user(Some(db_user))
-        .pass(Some(db_pwd))
-        .db_name(Some(db_name))
-        .ip_or_hostname(Some("mysql-db-primary".to_string()))
-        .tcp_port(3306);
-
-    let pool = Pool::new(opts).expect("Failed to create pool");
-
-    Arc::new(Mutex::new(pool))
+    MySqlPool::connect(&database_url)
+        .await
+        .map_err(AppError::from)
 }
